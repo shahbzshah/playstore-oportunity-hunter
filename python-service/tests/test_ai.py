@@ -180,7 +180,7 @@ def test_nvidia_analyze_strips_markdown_fences(monkeypatch, scored_detail):
 # ---------------------------------------------------------------- sane defaults
 
 def test_sane_model_and_token_defaults():
-    assert ai_mod.NVIDIA_MODEL == "deepseek-ai/deepseek-v4.1-flash"
+    assert ai_mod.NVIDIA_MODEL == "meta/llama-3.2-11b-vision-instruct"
     # Output cap must be practical, nowhere near the 1M-token context window.
     assert ai_mod.NVIDIA_MAX_TOKENS <= 4096
     assert "integrate.api.nvidia.com" in ai_mod.NVIDIA_URL

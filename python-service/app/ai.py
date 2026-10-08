@@ -5,7 +5,8 @@ does well, where the market gap is, and what a better version would
 look like. Providers are interchangeable -- start free, upgrade later.
 
 Preferred: NVIDIA Build's OpenAI-compatible API
-(https://integrate.api.nvidia.com/v1, model deepseek-ai/deepseek-v4.1-flash).
+(https://integrate.api.nvidia.com/v1, default model
+meta/llama-3.2-11b-vision-instruct, override with NVIDIA_MODEL).
 Auth comes from the stored vault credential when this service runs where
 that credential is available, otherwise from the NVIDIA_API_KEY
 environment variable (optionally NVIDIA_MODEL to pick another catalog
@@ -34,7 +35,7 @@ GROVE_MODEL = os.environ.get("GROVE_MODEL", "deepseek-v4.1-flash")
 
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_HOSTS = ["integrate.api.nvidia.com"]
-NVIDIA_MODEL = os.environ.get("NVIDIA_MODEL", "deepseek-ai/deepseek-v4.1-flash")
+NVIDIA_MODEL = os.environ.get("NVIDIA_MODEL", "meta/llama-3.2-11b-vision-instruct")
 NVIDIA_MAX_TOKENS = int(os.environ.get("NVIDIA_MAX_TOKENS", "2048"))
 NVIDIA_TIMEOUT = int(os.environ.get("NVIDIA_TIMEOUT", "240"))
 NVIDIA_CREDENTIAL = "custom.nvidia"
@@ -198,7 +199,7 @@ def _nvidia_vault_available() -> bool:
 
 
 class NvidiaProvider(AIProvider):
-    """NVIDIA Build OpenAI-compatible API (deepseek-v4.1-flash default).
+    """NVIDIA Build OpenAI-compatible API (llama-3.2-11b-vision default).
 
     Auth: the stored vault credential when available in this environment,
     otherwise the NVIDIA_API_KEY environment variable. Set NVIDIA_MODEL to
