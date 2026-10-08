@@ -3,7 +3,7 @@
 Endpoints:
   POST /scan               {keyword, n_hits, max_details} -> ranked opportunities
   GET  /app/{app_id}       full details + opportunity score
-  POST /analyze/{app_id}   AI market analysis (needs GEMINI_API_KEY)
+  POST /analyze/{app_id}   AI market analysis (NVIDIA preferred, null fallback)
   GET  /health
 """
 

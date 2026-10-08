@@ -4,11 +4,13 @@ The scorer finds the opportunities; the AI explains them: what the app
 does well, where the market gap is, and what a better version would
 look like. Providers are interchangeable -- start free, upgrade later.
 
-Set GEMINI_API_KEY in the environment (free at https://aistudio.google.com),
-or GROVE_API_KEY for the PGS Grove OpenAI-compatible gateway
-(optionally GROVE_MODEL to pick the model, default deepseek-v4.1-flash).
-Without a key, the NullProvider returns a placeholder so the rest of the
-pipeline keeps working.
+Preferred: NVIDIA Build's OpenAI-compatible API
+(https://integrate.api.nvidia.com/v1, model deepseek-ai/deepseek-v4.1-flash).
+Auth comes from the stored vault credential when this service runs where
+that credential is available, otherwise from the NVIDIA_API_KEY
+environment variable (optionally NVIDIA_MODEL to pick another catalog
+model). Fallbacks: GROVE_API_KEY, then GEMINI_API_KEY, then the null
+placeholder so the rest of the pipeline keeps working.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,19 @@ GEMINI_URL = (
 
 GROVE_URL = "https://api.pgsgrove.com/v1/chat/completions"
 GROVE_MODEL = os.environ.get("GROVE_MODEL", "deepseek-v4.1-flash")
+
+NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+NVIDIA_HOSTS = ["integrate.api.nvidia.com"]
+NVIDIA_MODEL = os.environ.get("NVIDIA_MODEL", "deepseek-ai/deepseek-v4.1-flash")
+NVIDIA_MAX_TOKENS = int(os.environ.get("NVIDIA_MAX_TOKENS", "2048"))
+NVIDIA_TIMEOUT = int(os.environ.get("NVIDIA_TIMEOUT", "240"))
+NVIDIA_CREDENTIAL = "custom.nvidia"
+_SKILL_BIN = "/opt/hatch/skills/skill-creator/bin"
+
+_BROWSER_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+)
 
 ANALYSIS_PROMPT = """\
 You are a mobile-app market analyst. Analyze this Google Play Store app as
@@ -168,8 +184,102 @@ class GroveProvider(AIProvider):
             return {"provider": "grove", "error": str(exc)}
 
 
+def _nvidia_vault_available() -> bool:
+    """True when the stored NVIDIA vault credential can be attached here."""
+    try:
+        if _SKILL_BIN not in sys.path:
+            sys.path.insert(0, _SKILL_BIN)
+        from dynamic_credentials import dynamic_credential_entry
+
+        dynamic_credential_entry(NVIDIA_CREDENTIAL)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+class NvidiaProvider(AIProvider):
+    """NVIDIA Build OpenAI-compatible API (deepseek-v4.1-flash default).
+
+    Auth: the stored vault credential when available in this environment,
+    otherwise the NVIDIA_API_KEY environment variable. Set NVIDIA_MODEL to
+    pick another catalog model.
+    """
+
+    name = "nvidia"
+
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        self.api_key = api_key or os.environ.get("NVIDIA_API_KEY", "")
+        self.model = model or NVIDIA_MODEL
+
+    def _build_request(self, payload: dict):
+        import urllib.request
+
+        req = urllib.request.Request(
+            NVIDIA_URL,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": _BROWSER_UA,
+            },
+            method="POST",
+        )
+        if self.api_key:
+            req.add_header("Authorization", f"Bearer {self.api_key}")
+        else:
+            if _SKILL_BIN not in sys.path:
+                sys.path.insert(0, _SKILL_BIN)
+            from dynamic_credentials import add_surrogate_to_request
+
+            add_surrogate_to_request(
+                req, NVIDIA_CREDENTIAL, allowed_hosts=NVIDIA_HOSTS
+            )
+        return req
+
+    def analyze(self, scored: dict, detail: dict) -> dict:
+        import urllib.error
+        import urllib.request
+
+        b = scored["breakdown"]
+        prompt = ANALYSIS_PROMPT.format(
+            title=scored["title"],
+            app_id=scored["appId"],
+            genre=scored.get("genre") or "unknown",
+            rating=scored["rating"],
+            reviews=scored["reviews"],
+            installs=scored.get("installs") or "unknown",
+            opportunity=scored["opportunity"],
+            q=b["quality"], g=b["gap"], m=b["market"], c=b["competition"],
+            description=str(detail.get("description") or "")[:1500],
+        )
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": NVIDIA_MAX_TOKENS,
+            "temperature": 0.4,
+        }
+        try:
+            req = self._build_request(payload)
+            if _SKILL_BIN not in sys.path:
+                sys.path.insert(0, _SKILL_BIN)
+            from dynamic_credentials import read_json_response
+
+            with urllib.request.urlopen(req, timeout=NVIDIA_TIMEOUT) as resp:
+                data = read_json_response(resp)
+            text = data["choices"][0]["message"]["content"]
+            text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            out = json.loads(text)
+            out["provider"] = "nvidia"
+            out["model"] = self.model
+            return out
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("nvidia analysis failed: %s", exc)
+            return {"provider": "nvidia", "error": str(exc)}
+
+
 def get_provider() -> AIProvider:
-    """Grove when its key is configured, else Gemini, else the null placeholder."""
+    """NVIDIA when its key or vault credential exists, else Grove, Gemini, null."""
+    if os.environ.get("NVIDIA_API_KEY") or _nvidia_vault_available():
+        return NvidiaProvider()
     if os.environ.get("GROVE_API_KEY"):
         return GroveProvider()
     if os.environ.get("GEMINI_API_KEY"):
@@ -177,4 +287,11 @@ def get_provider() -> AIProvider:
     return NullProvider()
 
 
-__all__ = ["AIProvider", "GeminiProvider", "GroveProvider", "NullProvider", "get_provider"]
+__all__ = [
+    "AIProvider",
+    "GeminiProvider",
+    "GroveProvider",
+    "NvidiaProvider",
+    "NullProvider",
+    "get_provider",
+]
