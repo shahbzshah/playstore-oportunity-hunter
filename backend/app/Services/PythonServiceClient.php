@@ -10,7 +10,12 @@ class PythonServiceClient
 
     public function __construct()
     {
-        $this->baseUrl = rtrim(config('services.python.url', 'http://127.0.0.1:8000'), '/');
+        $url = rtrim(config('services.python.url', 'http://127.0.0.1:8000'), '/');
+        // Render's fromService "host" property has no scheme; assume https.
+        if (! preg_match('#^https?://#i', $url)) {
+            $url = 'https://'.$url;
+        }
+        $this->baseUrl = $url;
     }
 
     protected function client()

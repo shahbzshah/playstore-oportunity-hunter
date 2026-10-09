@@ -1,0 +1,6 @@
+.git
+frontend/node_modules
+frontend/dist
+python-service/__pycache__
+python-service/.pytest_cache
+backend/vendor

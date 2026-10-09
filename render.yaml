@@ -1,0 +1,50 @@
+# Render blueprint: free-tier hosting for the whole stack.
+# Deploy with "New → Blueprint" and point it at this repo.
+# Assumes the onrender.com subdomains below; if Render assigns different
+# ones, update the three URLs and redeploy.
+services:
+  # Python FastAPI: scraper, scoring, AI analysis.
+  - type: web
+    name: oph-python
+    runtime: python
+    rootDir: python-service
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      # Paste your NVIDIA key in the Render dashboard after deploy.
+      # Until then the AI falls back to the null placeholder.
+      - key: NVIDIA_API_KEY
+        sync: false
+
+  # Laravel API + queue worker (supervisord runs apache and queue:work).
+  - type: web
+    name: oph-backend
+    runtime: docker
+    rootDir: .
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    envVars:
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: "https://oph-backend.onrender.com"
+      - key: PYTHON_SERVICE_URL
+        value: "https://oph-python.onrender.com"
+      - key: FRONTEND_URL
+        value: "https://oph-frontend.onrender.com"
+
+  # React SPA (always-on, free).
+  - type: static
+    name: oph-frontend
+    rootDir: frontend
+    buildCommand: "npm ci && npm run build"
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        value: "https://oph-backend.onrender.com/api/v1"
