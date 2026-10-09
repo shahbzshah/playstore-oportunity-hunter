@@ -18,8 +18,8 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 
 WORKDIR /var/www/html
 
-# Application code (build context is the repo root).
-COPY backend/ ./
+# Application code (build context is backend/).
+COPY . ./
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress \
     && mkdir -p database \
@@ -27,8 +27,8 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progre
     && chown -R www-data:www-data storage bootstrap/cache database \
     && php artisan config:clear
 
-COPY backend/docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY backend/docker/entrypoint.sh /entrypoint.sh
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 80

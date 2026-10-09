@@ -24,8 +24,8 @@ services:
     name: oph-backend
     runtime: docker
     rootDir: .
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./backend
     healthCheckPath: /up
     envVars:
       - key: APP_KEY
