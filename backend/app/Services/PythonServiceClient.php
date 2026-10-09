@@ -19,12 +19,12 @@ class PythonServiceClient
         $this->baseUrl = $url;
     }
 
-    protected function client()
+    protected function client(?int $timeout = null)
     {
         // Free-tier hosts sleep when idle; the first call can take a minute
         // to wake the service, so the timeout is generous (overridable).
         return Http::baseUrl($this->baseUrl)
-            ->timeout((int) config('services.python.timeout', 300))
+            ->timeout($timeout ?? (int) config('services.python.timeout', 300))
             ->acceptJson();
     }
 
@@ -34,7 +34,7 @@ class PythonServiceClient
      */
     protected function resilientClient()
     {
-        return $this->client()->retry(5, 15000, function ($exception) {
+        return $this->client()->retry(8, 15000, function ($exception) {
             if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
                 return true;
             }
@@ -47,15 +47,35 @@ class PythonServiceClient
     }
 
     /**
-     * Cheap call that wakes the Python service before a long scan, so the
-     * cold start doesn't eat into the scan request's own timeout.
+     * Block until the Python service answers /health, absorbing the full
+     * free-tier cold boot (which can take minutes — far longer than a few
+     * request retries). Gives up after $maxSeconds and lets the caller fail
+     * with a clear state instead of hanging the queue worker.
      */
-    public function wake(): void
+    public function wake(int $maxSeconds = 300): void
     {
-        try {
-            $this->health();
-        } catch (\Throwable $e) {
-            Log::debug('Python service wake-up ping failed', ['error' => $e->getMessage()]);
+        $deadline = time() + $maxSeconds;
+        $attempts = 0;
+        while (true) {
+            $attempts++;
+            try {
+                $this->client(30)->get('/health')->throw()->json();
+                if ($attempts > 1) {
+                    Log::info('Python service woke after cold start', ['attempts' => $attempts]);
+                }
+
+                return;
+            } catch (\Throwable $e) {
+                if (time() >= $deadline) {
+                    Log::warning('Python service did not wake in time', [
+                        'attempts' => $attempts,
+                        'error' => substr($e->getMessage(), 0, 200),
+                    ]);
+
+                    return;
+                }
+                sleep(10);
+            }
         }
     }
 
