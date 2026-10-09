@@ -41,7 +41,7 @@ function Field({ label, icon, error, children }) {
 }
 
 const inputClass = (error) =>
-  `w-full pl-10 pr-3.5 py-2.5 text-sm placeholder:text-slate-600 bg-[#11131a] border rounded-[12px] text-slate-100 transition-all duration-150 focus:outline-none ${
+  `w-full pl-11 pr-3.5 py-2.5 text-sm placeholder:text-slate-600 bg-[#11131a] border rounded-[12px] text-slate-100 transition-all duration-150 focus:outline-none ${
     error
       ? "border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]"
       : "border-[#2a2f42] focus:border-[#6c8cff] focus:ring-1 focus:ring-[#6c8cff] focus:shadow-[0_0_12px_rgba(108,140,255,0.2)]"
