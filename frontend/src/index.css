@@ -233,6 +233,23 @@ label.check input { width: auto; }
 .analysis ul, .analysis ol { padding-left: 1.25rem; }
 .analysis li { margin-bottom: 0.25rem; }
 
+/* Self-hosted fonts (Google Fonts CDN is blocked by some mobile browsers,
+   which broke icon rendering). Files live in public/fonts/. */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url(/fonts/material-symbols.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/fonts/inter-var.woff2) format('woff2');
+}
+
 /* Material Symbols (Stitch design) */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
