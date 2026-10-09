@@ -2,9 +2,10 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 
 function scoreTier(score) {
-  if (score >= 80)
+  // Design system tiers: 71–100 High, 41–70 Medium, 0–40 Low.
+  if (score >= 71)
     return { color: "#4ade80", label: "High Opportunity" };
-  if (score >= 50)
+  if (score >= 41)
     return { color: "#f59e0b", label: "Medium Score" };
   return { color: "#ef4444", label: "Low Score" };
 }
@@ -30,7 +31,7 @@ export default function OpportunityCard({ opportunity, onBookmark }) {
         <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center gap-2">
             <span
-              className="inline-flex items-center justify-center font-bold font-mono text-[18px] px-2.5 py-0.5 rounded-[8px] border"
+              className="inline-flex items-center justify-center font-bold font-mono text-[18px] px-2.5 py-0.5 rounded-[8px] border tabular-nums"
               style={{
                 color: tier.color,
                 backgroundColor: `${tier.color}1a`,
@@ -93,7 +94,7 @@ export default function OpportunityCard({ opportunity, onBookmark }) {
           )}
         </div>
 
-        <div className="w-full bg-[#1f2330] rounded-full h-[5px] mt-3 overflow-hidden">
+        <div className="w-full bg-[#1f2330] rounded-full h-[6px] mt-3 overflow-hidden">
           <div
             className="h-full rounded-full"
             style={{ width: `${Math.min(100, Math.max(0, score))}%`, backgroundColor: tier.color }}
