@@ -260,12 +260,17 @@ class NvidiaProvider(AIProvider):
         }
         try:
             req = self._build_request(payload)
-            if _SKILL_BIN not in sys.path:
-                sys.path.insert(0, _SKILL_BIN)
-            from dynamic_credentials import read_json_response
-
             with urllib.request.urlopen(req, timeout=NVIDIA_TIMEOUT) as resp:
-                data = read_json_response(resp)
+                if self.api_key:
+                    # Plain API-key auth: standard JSON response.
+                    data = json.loads(resp.read().decode("utf-8"))
+                else:
+                    # Vault surrogate flow: response needs the skill helper.
+                    if _SKILL_BIN not in sys.path:
+                        sys.path.insert(0, _SKILL_BIN)
+                    from dynamic_credentials import read_json_response
+
+                    data = read_json_response(resp)
             text = data["choices"][0]["message"]["content"]
             text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
             out = json.loads(text)
