@@ -51,18 +51,24 @@ def app_details(app_id: str) -> dict | None:
         return None
 
 
+def _is_game(detail: dict) -> bool:
+    """True when the app is a game (genreId like GAME_ACTION). We only
+    deal with apps, never games."""
+    return str(detail.get("genreId") or "").upper().startswith("GAME_")
+
+
 def scan_keyword(keyword: str, n_hits: int = 30,
                  max_details: int = 20) -> list[dict]:
     """Search a keyword and enrich the top results with full details.
 
     Returns detail dicts (each with ``installs_num``). Detail fetching is
-    the slow part, so it is capped at ``max_details``.
+    the slow part, so it is capped at ``max_details``. Games are skipped.
     """
     results = search_apps(keyword, n_hits=n_hits)
     enriched: list[dict] = []
     for r in results[:max_details]:
         d = app_details(r["appId"])
-        if d:
+        if d and not _is_game(d):
             enriched.append(d)
         time.sleep(DETAIL_DELAY_SECS)
     return enriched

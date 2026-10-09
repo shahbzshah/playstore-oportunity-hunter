@@ -40,4 +40,8 @@ return [
         'timeout' => env('PYTHON_SERVICE_TIMEOUT', 300),
     ],
 
+    'scheduler' => [
+        'token' => env('SCHEDULER_TOKEN'),
+    ],
+
 ];
