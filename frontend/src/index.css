@@ -1,3 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Legacy app styles (Auth + Opportunity detail pages) ---- */
 :root {
   --bg: #0f1117;
   --panel: #171a23;
@@ -227,3 +232,20 @@ label.check input { width: auto; }
 .analysis p, .analysis ul, .analysis ol { margin: 0.25rem 0; font-size: 0.93rem; }
 .analysis ul, .analysis ol { padding-left: 1.25rem; }
 .analysis li { margin-bottom: 0.25rem; }
+
+/* Material Symbols (Stitch design) */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+}
