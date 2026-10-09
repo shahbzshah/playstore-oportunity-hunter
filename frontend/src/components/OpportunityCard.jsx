@@ -1,18 +1,10 @@
 import { Link } from "react-router-dom";
 import { api } from "../api";
-
-function scoreTier(score) {
-  // Design system tiers: 71–100 High, 41–70 Medium, 0–40 Low.
-  if (score >= 71)
-    return { color: "#4ade80", label: "High Opportunity" };
-  if (score >= 41)
-    return { color: "#f59e0b", label: "Medium Score" };
-  return { color: "#ef4444", label: "Low Score" };
-}
+import { scoreTier } from "../utils";
 
 export default function OpportunityCard({ opportunity, onBookmark }) {
-  const score = Math.round(opportunity.score ?? 0);
-  const tier = scoreTier(score);
+  const tier = scoreTier(opportunity.score);
+  const score = tier.score;
 
   const toggle = async (e) => {
     e.preventDefault();
