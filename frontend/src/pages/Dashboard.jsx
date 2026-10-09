@@ -143,6 +143,11 @@ export default function Dashboard() {
               <li key={s.id} className={`scan scan-${s.status}`}>
                 <span className="scan-keyword">{s.keyword}</span>
                 <span className="scan-status">{s.status}</span>
+                {s.status === "failed" && s.error && (
+                  <span className="scan-error" title={s.error}>
+                    {s.error.length > 80 ? s.error.slice(0, 80) + "…" : s.error}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

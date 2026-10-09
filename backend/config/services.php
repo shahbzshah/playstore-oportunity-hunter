@@ -37,6 +37,7 @@ return [
 
     'python' => [
         'url' => env('PYTHON_SERVICE_URL', 'http://127.0.0.1:8000'),
+        'timeout' => env('PYTHON_SERVICE_TIMEOUT', 300),
     ],
 
 ];

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class PythonServiceClient
 {
@@ -20,9 +21,24 @@ class PythonServiceClient
 
     protected function client()
     {
+        // Free-tier hosts sleep when idle; the first call can take a minute
+        // to wake the service, so the timeout is generous (overridable).
         return Http::baseUrl($this->baseUrl)
-            ->timeout(120)
+            ->timeout((int) config('services.python.timeout', 300))
             ->acceptJson();
+    }
+
+    /**
+     * Cheap call that wakes the Python service before a long scan, so the
+     * cold start doesn't eat into the scan request's own timeout.
+     */
+    public function wake(): void
+    {
+        try {
+            $this->health();
+        } catch (\Throwable $e) {
+            Log::debug('Python service wake-up ping failed', ['error' => $e->getMessage()]);
+        }
     }
 
     public function health(): array

@@ -31,6 +31,7 @@ class RunScanJob implements ShouldQueue
         ]);
 
         try {
+            $client->wake();
             $response = $client->scan($scan->keyword);
             $results = $response['opportunities'] ?? $response['results'] ?? [];
 
