@@ -1,0 +1,36 @@
+{
+  "type": "web_service",
+  "name": "oph-backend",
+  "ownerId": "tea-db49eijl550s73b1fc50",
+  "repo": "https://github.com/shahbzshah/playstore-oportunity-hunter",
+  "branch": "main",
+  "serviceDetails": {
+    "runtime": "docker",
+    "plan": "free",
+    "healthCheckPath": "/up",
+    "envVars": [
+      {
+        "key": "APP_KEY",
+        "generateValue": true
+      },
+      {
+        "key": "APP_DEBUG",
+        "value": "false"
+      },
+      {
+        "key": "APP_URL",
+        "value": "https://oph-backend.onrender.com"
+      },
+      {
+        "key": "PYTHON_SERVICE_URL",
+        "value": "https://oph-python.onrender.com"
+      },
+      {
+        "key": "FRONTEND_URL",
+        "value": "https://oph-frontend.onrender.com"
+      }
+    ],
+    "dockerfilePath": "./backend/Dockerfile",
+    "dockerContext": "."
+  }
+}

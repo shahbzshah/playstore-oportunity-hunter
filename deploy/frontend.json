@@ -1,0 +1,13 @@
+{
+  "type": "static_site",
+  "name": "oph-frontend",
+  "ownerId": "tea-db49eijl550s73b1fc50",
+  "repo": "https://github.com/shahbzshah/playstore-oportunity-hunter",
+  "branch": "main",
+  "rootDir": "frontend",
+  "buildCommand": "npm ci && npm run build",
+  "staticPublishPath": "./dist",
+  "envVars": [
+    {"key": "VITE_API_URL", "value": "https://oph-backend.onrender.com/api/v1"}
+  ]
+}

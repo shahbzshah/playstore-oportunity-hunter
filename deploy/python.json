@@ -1,0 +1,23 @@
+{
+  "type": "web_service",
+  "name": "oph-python",
+  "ownerId": "tea-db49eijl550s73b1fc50",
+  "repo": "https://github.com/shahbzshah/playstore-oportunity-hunter",
+  "branch": "main",
+  "serviceDetails": {
+    "runtime": "python",
+    "rootDir": "python-service",
+    "plan": "free",
+    "envVars": [
+      {
+        "key": "PYTHON_VERSION",
+        "value": "3.12.0"
+      }
+    ],
+    "envSpecificDetails": {
+      "buildCommand": "pip install -r requirements.txt",
+      "startCommand": "uvicorn main:app --host 0.0.0.0 --port $PORT",
+      "healthCheckPath": "/health"
+    }
+  }
+}
