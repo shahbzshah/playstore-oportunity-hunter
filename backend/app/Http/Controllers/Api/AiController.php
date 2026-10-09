@@ -46,4 +46,12 @@ class AiController extends Controller
 
         return response()->json($analysis, 201);
     }
+
+    public function destroy(Request $request, int $id)
+    {
+        $analysis = Analysis::where('user_id', $request->user()->id)->findOrFail($id);
+        $analysis->delete();
+
+        return response()->noContent();
+    }
 }

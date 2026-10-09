@@ -8,7 +8,7 @@ function parseContent(content) {
   }
 }
 
-export default function AnalysisView({ analysis }) {
+export default function AnalysisView({ analysis, onDelete }) {
   const parsed = parseContent(analysis.content);
 
   return (
@@ -19,6 +19,16 @@ export default function AnalysisView({ analysis }) {
           <span className="muted">
             {new Date(analysis.created_at).toLocaleString()}
           </span>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            className="analysis-delete"
+            title="Delete this analysis"
+            onClick={() => onDelete(analysis.id)}
+          >
+            ×
+          </button>
         )}
       </div>
       {!parsed ? (

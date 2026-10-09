@@ -84,4 +84,5 @@ export const api = {
       method: "POST",
       body: opportunityId ? { opportunity_id: opportunityId } : {},
     }),
+  deleteAnalysis: (id) => request(`/analyses/${id}`, { method: "DELETE" }),
 };

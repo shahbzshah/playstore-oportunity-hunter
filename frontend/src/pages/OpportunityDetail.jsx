@@ -44,6 +44,14 @@ export default function OpportunityDetail() {
     navigate("/");
   };
 
+  const deleteAnalysis = async (analysisId) => {
+    await api.deleteAnalysis(analysisId);
+    setOpp((o) => ({
+      ...o,
+      analyses: (o.analyses || []).filter((a) => a.id !== analysisId),
+    }));
+  };
+
   if (error) return <div className="page"><p className="error">{error}</p><Link to="/">← Back</Link></div>;
   if (!opp) return <div className="page"><p className="muted">Loading…</p></div>;
 
@@ -106,7 +114,9 @@ export default function OpportunityDetail() {
           analyses
             .slice()
             .reverse()
-            .map((a) => <AnalysisView key={a.id} analysis={a} />)
+            .map((a) => (
+              <AnalysisView key={a.id} analysis={a} onDelete={deleteAnalysis} />
+            ))
         )}
       </div>
     </div>

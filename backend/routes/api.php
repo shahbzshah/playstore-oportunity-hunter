@@ -17,5 +17,6 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('scans', ScanController::class)->only(['index', 'store', 'show']);
         Route::apiResource('opportunities', OpportunityController::class);
         Route::post('analyze/{appId}', [AiController::class, 'analyze']);
+        Route::delete('analyses/{analysis}', [AiController::class, 'destroy']);
     });
 });
