@@ -66,12 +66,15 @@ class PythonServiceClient
 
     /**
      * Run a keyword scan. Returns the decoded response with `results`.
+     *
+     * NOTE: ->throw() must be on the pending request (not the response)
+     * for ->retry() to catch HTTP errors and actually retry.
      */
     public function scan(string $keyword, int $limit = 20): array
     {
         return $this->resilientClient()
-            ->post('/scan', ['keyword' => $keyword, 'limit' => $limit])
             ->throw()
+            ->post('/scan', ['keyword' => $keyword, 'limit' => $limit])
             ->json();
     }
 
@@ -82,6 +85,6 @@ class PythonServiceClient
 
     public function analyze(string $appId): array
     {
-        return $this->resilientClient()->post("/analyze/{$appId}")->throw()->json();
+        return $this->resilientClient()->throw()->post("/analyze/{$appId}")->json();
     }
 }
