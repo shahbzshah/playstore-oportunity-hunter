@@ -29,6 +29,24 @@ class PythonServiceClient
     }
 
     /**
+     * Client with retries for Render's proxy 502/503/504s and connection
+     * drops while the free-tier Python service wakes from sleep.
+     */
+    protected function resilientClient()
+    {
+        return $this->client()->retry(5, 15000, function ($exception) {
+            if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
+                return true;
+            }
+            $response = $exception instanceof \Illuminate\Http\Client\RequestException
+                ? $exception->response
+                : null;
+
+            return $response && in_array($response->status(), [502, 503, 504]);
+        });
+    }
+
+    /**
      * Cheap call that wakes the Python service before a long scan, so the
      * cold start doesn't eat into the scan request's own timeout.
      */
@@ -51,7 +69,7 @@ class PythonServiceClient
      */
     public function scan(string $keyword, int $limit = 20): array
     {
-        return $this->client()
+        return $this->resilientClient()
             ->post('/scan', ['keyword' => $keyword, 'limit' => $limit])
             ->throw()
             ->json();
@@ -64,6 +82,6 @@ class PythonServiceClient
 
     public function analyze(string $appId): array
     {
-        return $this->client()->post("/analyze/{$appId}")->throw()->json();
+        return $this->resilientClient()->post("/analyze/{$appId}")->throw()->json();
     }
 }
