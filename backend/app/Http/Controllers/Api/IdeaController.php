@@ -41,8 +41,8 @@ class IdeaController extends Controller
     {
         $data = $request->validate([
             'title' => 'required|string|min:3|max:300',
-            'source' => 'sometimes|string|max:100',
-            'context' => 'sometimes|string|max:2000',
+            'source' => 'sometimes|nullable|string|max:100',
+            'context' => 'sometimes|nullable|string|max:2000',
         ]);
 
         try {
