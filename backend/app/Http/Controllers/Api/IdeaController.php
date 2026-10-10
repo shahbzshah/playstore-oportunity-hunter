@@ -17,7 +17,10 @@ class IdeaController extends Controller
 {
     public function index(PythonServiceClient $client)
     {
-        $ideas = Cache::remember('ideas.feed', now()->addHours(6), function () use ($client) {
+        // v2 key: v1 cached an empty feed during the Arctic Shift outage.
+        // Empty feeds are cached briefly (5 min) so a source hiccup
+        // doesn't blank the page for hours; good feeds cache for 6h.
+        $ideas = Cache::remember('ideas.feed.v2', now()->addHours(6), function () use ($client) {
             try {
                 return $client->ideas();
             } catch (\Throwable $e) {
@@ -25,6 +28,11 @@ class IdeaController extends Controller
                 return ['count' => 0, 'ideas' => []];
             }
         });
+
+        if (($ideas['count'] ?? 0) === 0) {
+            // Don't let an empty result sit in cache for 6 hours.
+            Cache::put('ideas.feed.v2', $ideas, now()->addMinutes(5));
+        }
 
         return response()->json($ideas);
     }
