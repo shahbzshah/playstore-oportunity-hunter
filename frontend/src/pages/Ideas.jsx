@@ -5,16 +5,19 @@ import { api } from "../api";
 
 function SourceBadge({ source }) {
   const isReddit = source.startsWith("Reddit");
+  const isHN = source === "Hacker News";
   return (
     <span
       className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
         isReddit
           ? "text-[#ff8a5c] border-[#ff8a5c]/30 bg-[#ff8a5c]/10"
-          : "text-[#6c8cff] border-[#6c8cff]/30 bg-[#6c8cff]/10"
+          : isHN
+            ? "text-[#f59e0b] border-[#f59e0b]/30 bg-[#f59e0b]/10"
+            : "text-[#6c8cff] border-[#6c8cff]/30 bg-[#6c8cff]/10"
       }`}
     >
       <span className="material-symbols-outlined text-[14px]">
-        {isReddit ? "forum" : "trending_up"}
+        {isReddit ? "forum" : isHN ? "newspaper" : "trending_up"}
       </span>
       {source}
     </span>
@@ -230,7 +233,7 @@ export default function Ideas() {
                 Idea Radar
               </h1>
               <p className="text-[13px] text-slate-400 mt-1">
-                App ideas trending on Reddit and Google right now. Tap one for
+                App ideas trending on Hacker News and Reddit right now. Tap one for
                 an AI deep-dive, then scan the Play Store for the competition.
               </p>
             </div>

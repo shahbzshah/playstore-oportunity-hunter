@@ -1,4 +1,4 @@
-"""Trend and idea sources: Reddit app-idea communities and Google Trends.
+"""Trend and idea sources: Hacker News, Reddit app-idea communities.
 
 Ideas are pulled live (no API keys needed) and returned as plain dicts:
   {title, source, hotness, url, text}
@@ -14,8 +14,40 @@ import requests
 logger = logging.getLogger(__name__)
 
 REDDIT_SUBS = ["AppIdeas", "androidapps", "SideProject"]
-REDDIT_UA = "OpportunityHunter/1.0 (idea radar)"
+HN_QUERIES = ["app idea", "mobile app idea", "side project app"]
 REQUEST_TIMEOUT = 20
+
+
+def hackernews_ideas(limit_per_query: int = 8) -> list[dict]:
+    """App-idea stories from Hacker News via the Algolia API (fast, reliable)."""
+    ideas: list[dict] = []
+    seen: set[str] = set()
+    for query in HN_QUERIES:
+        try:
+            resp = requests.get(
+                "https://hn.algolia.com/api/v1/search",
+                params={"query": query, "tags": "story",
+                        "hitsPerPage": limit_per_query},
+                timeout=REQUEST_TIMEOUT,
+            )
+            resp.raise_for_status()
+            for h in resp.json().get("hits", []):
+                title = (h.get("title") or "").strip()
+                oid = str(h.get("objectID") or "")
+                if not title or oid in seen:
+                    continue
+                seen.add(oid)
+                ideas.append({
+                    "title": title,
+                    "source": "Hacker News",
+                    "hotness": int(h.get("points") or 0),
+                    "url": f"https://news.ycombinator.com/item?id={oid}",
+                    "text": "",
+                })
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("hacker news fetch failed for %r: %s", query, exc)
+    ideas.sort(key=lambda x: x["hotness"], reverse=True)
+    return ideas
 
 
 def _fetch_subreddit(sub: str, limit: int) -> list[dict]:
@@ -91,8 +123,8 @@ def google_trends(limit: int = 10) -> list[dict]:
 
 
 def all_ideas() -> list[dict]:
-    """Combined feed: Reddit ideas first (richer), then trending searches."""
-    return reddit_ideas() + google_trends()
+    """Combined feed: Hacker News first (reliable), then Reddit, then Trends."""
+    return hackernews_ideas() + reddit_ideas() + google_trends()
 
 
-__all__ = ["all_ideas", "google_trends", "reddit_ideas"]
+__all__ = ["all_ideas", "google_trends", "hackernews_ideas", "reddit_ideas"]
