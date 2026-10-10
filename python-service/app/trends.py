@@ -123,8 +123,10 @@ def google_trends(limit: int = 10) -> list[dict]:
 
 
 def all_ideas() -> list[dict]:
-    """Combined feed: Hacker News first (reliable), then Reddit, then Trends."""
-    return hackernews_ideas() + reddit_ideas() + google_trends()
+    """Combined feed: Hacker News (reliable). Reddit via Arctic Shift is
+    disabled for now — the API has been returning 522s for hours. Re-enable
+    reddit_ideas() here once it recovers."""
+    return hackernews_ideas() + google_trends()
 
 
 __all__ = ["all_ideas", "google_trends", "hackernews_ideas", "reddit_ideas"]
