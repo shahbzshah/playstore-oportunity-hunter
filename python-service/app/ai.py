@@ -68,10 +68,33 @@ Reply in exactly this JSON shape (no markdown, no extra text):
 }}"""
 
 
+IDEA_PROMPT = """\
+You are a mobile-app market analyst. Someone spotted this app idea trending
+online and wants a detailed breakdown before deciding whether to build it.
+
+Idea: {title}
+Source: {source}
+Context: {context}
+
+Reply in exactly this JSON shape (no markdown, no extra text):
+{{
+  "summary": "2-3 sentences explaining what the idea is",
+  "why_trending": "2-3 sentences on why this is getting attention right now",
+  "target_audience": "who would use this, in one sentence",
+  "key_features": ["must-have feature 1", "must-have feature 2", "must-have feature 3"],
+  "monetization": "one sentence on how this app could make money",
+  "competition_angle": "2-3 sentences on what to look for when scanning the Play Store for existing competition",
+  "suggested_keywords": ["keyword 1", "keyword 2", "keyword 3"]
+}}"""
+
+
 class AIProvider:
     name = "null"
 
     def analyze(self, scored: dict, detail: dict) -> dict:
+        raise NotImplementedError
+
+    def analyze_idea(self, idea: dict) -> dict:
         raise NotImplementedError
 
 
@@ -87,6 +110,13 @@ class NullProvider(AIProvider):
             "summary": f"{scored['title']}: opportunity {scored['opportunity']}/100.",
         }
 
+    def analyze_idea(self, idea: dict) -> dict:
+        return {
+            "provider": "null",
+            "note": "Set an AI API key to enable idea analysis.",
+            "summary": f"Idea: {idea.get('title', 'unknown')}.",
+        }
+
 
 class GeminiProvider(AIProvider):
     """Google Gemini free tier via the REST API."""
@@ -96,9 +126,26 @@ class GeminiProvider(AIProvider):
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
 
-    def analyze(self, scored: dict, detail: dict) -> dict:
+    def _complete(self, prompt: str) -> dict:
         import requests
 
+        resp = requests.post(
+            GEMINI_URL,
+            params={"key": self.api_key},
+            json={"contents": [{"parts": [{"text": prompt}]}],
+                  "generationConfig": {"temperature": 0.4}},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        # Strip accidental markdown fences.
+        text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        out = json.loads(text)
+        out["provider"] = "gemini"
+        return out
+
+    def analyze(self, scored: dict, detail: dict) -> dict:
         b = scored["breakdown"]
         prompt = ANALYSIS_PROMPT.format(
             title=scored["title"],
@@ -112,23 +159,21 @@ class GeminiProvider(AIProvider):
             description=str(detail.get("description") or "")[:1500],
         )
         try:
-            resp = requests.post(
-                GEMINI_URL,
-                params={"key": self.api_key},
-                json={"contents": [{"parts": [{"text": prompt}]}],
-                      "generationConfig": {"temperature": 0.4}},
-                timeout=60,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            text = data["candidates"][0]["content"]["parts"][0]["text"]
-            # Strip accidental markdown fences.
-            text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-            out = json.loads(text)
-            out["provider"] = "gemini"
-            return out
+            return self._complete(prompt)
         except Exception as exc:  # noqa: BLE001
             logger.warning("gemini analysis failed: %s", exc)
+            return {"provider": "gemini", "error": str(exc)}
+
+    def analyze_idea(self, idea: dict) -> dict:
+        prompt = IDEA_PROMPT.format(
+            title=idea.get("title", "unknown"),
+            source=idea.get("source", "unknown"),
+            context=str(idea.get("text") or idea.get("context") or "")[:800],
+        )
+        try:
+            return self._complete(prompt)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("gemini idea analysis failed: %s", exc)
             return {"provider": "gemini", "error": str(exc)}
 
 
@@ -141,9 +186,34 @@ class GroveProvider(AIProvider):
         self.api_key = api_key or os.environ.get("GROVE_API_KEY", "")
         self.model = model or GROVE_MODEL
 
-    def analyze(self, scored: dict, detail: dict) -> dict:
+    def _complete(self, prompt: str) -> dict:
         import requests
 
+        resp = requests.post(
+            GROVE_URL,
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                # Cloudflare blocks default python clients (error 1010).
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+            },
+            json={
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 1024,
+                "temperature": 0.4,
+            },
+            timeout=90,
+        )
+        resp.raise_for_status()
+        text = resp.json()["choices"][0]["message"]["content"]
+        text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        out = json.loads(text)
+        out["provider"] = "grove"
+        out["model"] = self.model
+        return out
+
+    def analyze(self, scored: dict, detail: dict) -> dict:
         b = scored["breakdown"]
         prompt = ANALYSIS_PROMPT.format(
             title=scored["title"],
@@ -157,31 +227,21 @@ class GroveProvider(AIProvider):
             description=str(detail.get("description") or "")[:1500],
         )
         try:
-            resp = requests.post(
-                GROVE_URL,
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                    # Cloudflare blocks default python clients (error 1010).
-                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-                },
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 1024,
-                    "temperature": 0.4,
-                },
-                timeout=90,
-            )
-            resp.raise_for_status()
-            text = resp.json()["choices"][0]["message"]["content"]
-            text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-            out = json.loads(text)
-            out["provider"] = "grove"
-            out["model"] = self.model
-            return out
+            return self._complete(prompt)
         except Exception as exc:  # noqa: BLE001
             logger.warning("grove analysis failed: %s", exc)
+            return {"provider": "grove", "error": str(exc)}
+
+    def analyze_idea(self, idea: dict) -> dict:
+        prompt = IDEA_PROMPT.format(
+            title=idea.get("title", "unknown"),
+            source=idea.get("source", "unknown"),
+            context=str(idea.get("text") or idea.get("context") or "")[:800],
+        )
+        try:
+            return self._complete(prompt)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("grove idea analysis failed: %s", exc)
             return {"provider": "grove", "error": str(exc)}
 
 
@@ -236,10 +296,36 @@ class NvidiaProvider(AIProvider):
             )
         return req
 
-    def analyze(self, scored: dict, detail: dict) -> dict:
+    def _complete(self, prompt: str) -> dict:
         import urllib.error
         import urllib.request
 
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": NVIDIA_MAX_TOKENS,
+            "temperature": 0.4,
+        }
+        req = self._build_request(payload)
+        with urllib.request.urlopen(req, timeout=NVIDIA_TIMEOUT) as resp:
+            if self.api_key:
+                # Plain API-key auth: standard JSON response.
+                data = json.loads(resp.read().decode("utf-8"))
+            else:
+                # Vault surrogate flow: response needs the skill helper.
+                if _SKILL_BIN not in sys.path:
+                    sys.path.insert(0, _SKILL_BIN)
+                from dynamic_credentials import read_json_response
+
+                data = read_json_response(resp)
+        text = data["choices"][0]["message"]["content"]
+        text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        out = json.loads(text)
+        out["provider"] = "nvidia"
+        out["model"] = self.model
+        return out
+
+    def analyze(self, scored: dict, detail: dict) -> dict:
         b = scored["breakdown"]
         prompt = ANALYSIS_PROMPT.format(
             title=scored["title"],
@@ -252,33 +338,22 @@ class NvidiaProvider(AIProvider):
             q=b["quality"], g=b["gap"], m=b["market"], c=b["competition"],
             description=str(detail.get("description") or "")[:1500],
         )
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": NVIDIA_MAX_TOKENS,
-            "temperature": 0.4,
-        }
         try:
-            req = self._build_request(payload)
-            with urllib.request.urlopen(req, timeout=NVIDIA_TIMEOUT) as resp:
-                if self.api_key:
-                    # Plain API-key auth: standard JSON response.
-                    data = json.loads(resp.read().decode("utf-8"))
-                else:
-                    # Vault surrogate flow: response needs the skill helper.
-                    if _SKILL_BIN not in sys.path:
-                        sys.path.insert(0, _SKILL_BIN)
-                    from dynamic_credentials import read_json_response
-
-                    data = read_json_response(resp)
-            text = data["choices"][0]["message"]["content"]
-            text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-            out = json.loads(text)
-            out["provider"] = "nvidia"
-            out["model"] = self.model
-            return out
+            return self._complete(prompt)
         except Exception as exc:  # noqa: BLE001
             logger.warning("nvidia analysis failed: %s", exc)
+            return {"provider": "nvidia", "error": str(exc)}
+
+    def analyze_idea(self, idea: dict) -> dict:
+        prompt = IDEA_PROMPT.format(
+            title=idea.get("title", "unknown"),
+            source=idea.get("source", "unknown"),
+            context=str(idea.get("text") or idea.get("context") or "")[:800],
+        )
+        try:
+            return self._complete(prompt)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("nvidia idea analysis failed: %s", exc)
             return {"provider": "nvidia", "error": str(exc)}
 
 

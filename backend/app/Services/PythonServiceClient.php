@@ -84,6 +84,20 @@ class PythonServiceClient
         return $this->client()->get('/health')->throw()->json();
     }
 
+    public function ideas(): array
+    {
+        return $this->resilientClient()->throw()->get('/ideas')->json();
+    }
+
+    public function analyzeIdea(string $title, string $source, string $context): array
+    {
+        return $this->resilientClient()->throw()->post('/idea/analyze', [
+            'title' => $title,
+            'source' => $source,
+            'context' => $context,
+        ])->json();
+    }
+
     /**
      * Run a keyword scan. Returns the decoded response with `results`.
      *

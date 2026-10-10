@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth";
 import { Login, Register } from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Ideas from "./pages/Ideas";
 import OpportunityDetail from "./pages/OpportunityDetail";
 
 function Protected({ children }) {
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/login" element={<Public><Login /></Public>} />
           <Route path="/register" element={<Public><Register /></Public>} />
           <Route path="/" element={<Protected><Dashboard /></Protected>} />
+          <Route path="/ideas" element={<Protected><Ideas /></Protected>} />
           <Route
             path="/opportunities/:id"
             element={<Protected><OpportunityDetail /></Protected>}

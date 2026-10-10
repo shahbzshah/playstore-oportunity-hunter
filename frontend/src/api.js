@@ -85,4 +85,15 @@ export const api = {
       body: opportunityId ? { opportunity_id: opportunityId } : {},
     }),
   deleteAnalysis: (id) => request(`/analyses/${id}`, { method: "DELETE" }),
+
+  listIdeas: () => request("/ideas"),
+  analyzeIdea: (idea) =>
+    request("/ideas/analyze", {
+      method: "POST",
+      body: {
+        title: idea.title,
+        source: idea.source || "unknown",
+        context: idea.text || "",
+      },
+    }),
 };

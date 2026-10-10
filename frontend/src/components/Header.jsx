@@ -22,6 +22,15 @@ export default function Header() {
           </span>
         </Link>
         <div className="flex items-center gap-3">
+          <Link
+            to="/ideas"
+            className="flex items-center gap-1.5 text-[12px] font-semibold text-outline hover:text-on-surface px-2.5 py-1.5 rounded-lg transition-all no-underline"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              auto_awesome
+            </span>
+            <span className="hidden sm:inline">Ideas</span>
+          </Link>
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-container-high border border-outline-variant/40">
             <div className="w-6 h-6 rounded-full bg-primary-container/20 text-primary flex items-center justify-center font-bold text-[12px] border border-primary/30">
               {initial}

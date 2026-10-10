@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OpportunityController;
 use App\Http\Controllers\Api\ScanController;
+use App\Http\Controllers\Api\IdeaController;
 use App\Http\Controllers\Api\ScheduledScanController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,5 +23,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('opportunities', OpportunityController::class);
         Route::post('analyze/{appId}', [AiController::class, 'analyze']);
         Route::delete('analyses/{analysis}', [AiController::class, 'destroy']);
+
+        Route::get('ideas', [IdeaController::class, 'index']);
+        Route::post('ideas/analyze', [IdeaController::class, 'analyze']);
     });
 });
